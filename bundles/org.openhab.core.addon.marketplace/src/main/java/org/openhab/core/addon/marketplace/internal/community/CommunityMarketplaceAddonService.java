@@ -36,6 +36,7 @@ import java.util.stream.Stream;
 import org.eclipse.jdt.annotation.NonNullByDefault;
 import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.core.addon.Addon;
+import org.openhab.core.addon.AddonInfoProvider;
 import org.openhab.core.addon.AddonService;
 import org.openhab.core.addon.AddonType;
 import org.openhab.core.addon.marketplace.AbstractRemoteAddonService;
@@ -115,8 +116,8 @@ public class CommunityMarketplaceAddonService extends AbstractRemoteAddonService
     @Activate
     public CommunityMarketplaceAddonService(final @Reference EventPublisher eventPublisher,
             @Reference ConfigurationAdmin configurationAdmin, @Reference StorageService storageService,
-            Map<String, Object> config) {
-        super(eventPublisher, configurationAdmin, storageService, SERVICE_PID);
+            Map<String, Object> config, @Reference AddonInfoProvider addonInfoProvider) {
+        super(eventPublisher, configurationAdmin, storageService, addonInfoProvider, SERVICE_PID);
         modified(config);
     }
 
@@ -436,12 +437,18 @@ public class CommunityMarketplaceAddonService extends AbstractRemoteAddonService
         // try to use a handler to determine if the add-on is installed
         boolean installed = addonHandlers.stream()
                 .anyMatch(handler -> handler.supports(type, contentType) && handler.isInstalled(uid));
-
+        String configDescriptionURI = "";
+        if (installed) {
+            var addonInfo = addonInfoProvider.getAddonInfo(addonType.getId() + "-" + id, null);
+            if (addonInfo != null) {
+                configDescriptionURI = addonInfo.getConfigDescriptionURI();
+            }
+        }
         return Addon.create(uid).withType(type).withId(id).withContentType(contentType).withLabel(topic.title)
                 .withImageLink(topic.imageUrl).withLink(COMMUNITY_TOPIC_URL + topic.id.toString())
                 .withAuthor(topic.postStream.posts[0].displayUsername).withMaturity(maturity)
-                .withDetailedDescription(detailedDescription).withInstalled(installed).withProperties(properties)
-                .build();
+                .withDetailedDescription(detailedDescription).withInstalled(installed)
+                .withConfigDescriptionURI(configDescriptionURI).withProperties(properties).build();
     }
 
     private @Nullable String determineIdFromUrl(String url) {

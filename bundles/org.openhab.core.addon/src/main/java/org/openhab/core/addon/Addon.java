@@ -45,7 +45,7 @@ public class Addon {
     private final String type;
     private final @Nullable String description;
     private final @Nullable String detailedDescription;
-    private final String configDescriptionURI;
+    private String configDescriptionURI;
     private final String keywords;
     private final List<String> countries;
     private final @Nullable String license;
@@ -271,6 +271,13 @@ public class Addon {
      */
     public void setInstalled(boolean installed) {
         this.installed = installed;
+    }
+
+    /**
+     * Sets the config url
+     */
+    public void setConfigDescriptionURI(String configDescriptionURI) {
+        this.configDescriptionURI = configDescriptionURI;
     }
 
     /**

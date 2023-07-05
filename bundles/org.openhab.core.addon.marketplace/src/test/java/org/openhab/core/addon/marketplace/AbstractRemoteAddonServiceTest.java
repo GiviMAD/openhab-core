@@ -43,6 +43,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.openhab.core.addon.Addon;
+import org.openhab.core.addon.AddonInfoProvider;
 import org.openhab.core.addon.marketplace.test.TestAddonHandler;
 import org.openhab.core.addon.marketplace.test.TestAddonService;
 import org.openhab.core.events.Event;
@@ -66,6 +67,7 @@ public class AbstractRemoteAddonServiceTest {
     private @Mock @NonNullByDefault({}) StorageService storageService;
     private @Mock @NonNullByDefault({}) ConfigurationAdmin configurationAdmin;
     private @Mock @NonNullByDefault({}) EventPublisher eventPublisher;
+    private @Mock @NonNullByDefault({}) AddonInfoProvider addonInfoProvider;
     private @Mock @NonNullByDefault({}) Configuration configuration;
 
     private @NonNullByDefault({}) Storage<String> storage;
@@ -82,7 +84,7 @@ public class AbstractRemoteAddonServiceTest {
 
         addonHandler = new TestAddonHandler();
 
-        addonService = new TestAddonService(eventPublisher, configurationAdmin, storageService);
+        addonService = new TestAddonService(eventPublisher, configurationAdmin, storageService, addonInfoProvider);
         addonService.addAddonHandler(addonHandler);
     }
 
@@ -93,7 +95,7 @@ public class AbstractRemoteAddonServiceTest {
         addonHandler = new TestAddonHandler();
         addonHandler.setReady(false);
 
-        addonService = new TestAddonService(eventPublisher, configurationAdmin, storageService);
+        addonService = new TestAddonService(eventPublisher, configurationAdmin, storageService, addonInfoProvider);
         addonService.addAddonHandler(addonHandler);
 
         List<Addon> addons = addonService.getAddons(null);

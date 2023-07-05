@@ -29,6 +29,7 @@ import org.eclipse.jdt.annotation.Nullable;
 import org.openhab.core.OpenHAB;
 import org.openhab.core.addon.Addon;
 import org.openhab.core.addon.AddonEventFactory;
+import org.openhab.core.addon.AddonInfoProvider;
 import org.openhab.core.addon.AddonService;
 import org.openhab.core.addon.AddonType;
 import org.openhab.core.cache.ExpiringCache;
@@ -51,6 +52,7 @@ import com.google.gson.JsonSyntaxException;
  * The {@link AbstractRemoteAddonService} implements basic functionality of a remote add-on-service
  *
  * @author Jan N. Klug - Initial contribution
+ * @author Miguel Álvarez Díez - Use bundle config description uri for installed addons
  */
 @NonNullByDefault
 public abstract class AbstractRemoteAddonService implements AddonService {
@@ -66,17 +68,19 @@ public abstract class AbstractRemoteAddonService implements AddonService {
     protected final ConfigurationAdmin configurationAdmin;
     protected final ExpiringCache<List<Addon>> cachedRemoteAddons = new ExpiringCache<>(Duration.ofMinutes(15),
             this::getRemoteAddons);
+    protected final AddonInfoProvider addonInfoProvider;
     protected List<Addon> cachedAddons = List.of();
     protected List<String> installedAddons = List.of();
 
     private final Logger logger = LoggerFactory.getLogger(AbstractRemoteAddonService.class);
 
     public AbstractRemoteAddonService(EventPublisher eventPublisher, ConfigurationAdmin configurationAdmin,
-            StorageService storageService, String servicePid) {
+            StorageService storageService, AddonInfoProvider addonInfoProvider, String servicePid) {
         this.eventPublisher = eventPublisher;
         this.configurationAdmin = configurationAdmin;
         this.installedAddonStorage = storageService.getStorage(servicePid);
         this.coreVersion = getCoreVersion();
+        this.addonInfoProvider = addonInfoProvider;
     }
 
     protected BundleVersion getCoreVersion() {
@@ -110,9 +114,17 @@ public abstract class AbstractRemoteAddonService implements AddonService {
             remoteAddons.stream().filter(a -> !installedAddons.contains(a.getUid())).forEach(addons::add);
         }
 
-        // check real installation status based on handlers
-        addons.forEach(
-                addon -> addon.setInstalled(addonHandlers.stream().anyMatch(h -> h.isInstalled(addon.getUid()))));
+        // check real installation status based on handlers and update config uri with bundle info
+        addons.forEach(addon -> {
+            boolean installed = addonHandlers.stream().anyMatch(h -> h.isInstalled(addon.getUid()));
+            addon.setInstalled(installed);
+            if (installed) {
+                var info = addonInfoProvider.getAddonInfo(addon.getType() + "-" + addon.getId(), Locale.ENGLISH);
+                if (info != null) {
+                    addon.setConfigDescriptionURI(info.getConfigDescriptionURI());
+                }
+            }
+        });
 
         // remove incompatible add-ons if not enabled
         boolean showIncompatible = includeIncompatible();
